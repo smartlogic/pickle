@@ -108,24 +108,44 @@ module Pickle
       def self.factories
         if defined? ::FactoryGirl
           factories = []
-          ::FactoryGirl.factories.each {|v| factories << new(v)}
+          ::FactoryGirl.factories.each do |v|
+            factories << new(v)
+            if v.respond_to?(:defined_traits)
+              v.defined_traits.each do |trait|
+                factories << new(v, trait)
+              end
+            end
+          end
           factories
         else
           (::Factory.factories.values rescue []).map {|factory| new(factory)}
         end
       end
 
-      def initialize(factory)
+      def initialize(factory, trait = nil)
+        @klass = factory.build_class
+
         if defined? ::FactoryGirl
-          @klass, @name = factory.build_class, factory.name.to_s
+          @factory = factory.name.to_s
         else
-          @klass, @name = factory.build_class, factory.factory_name.to_s
+          @factory = factory.factory_name.to_s
+        end
+
+        if trait
+          @name = "#{trait.name}_#@factory"
+          @trait = trait.name.to_sym
+        else
+          @name = @factory
         end
       end
 
       def create(attrs = {})
         if defined? ::FactoryGirl
-          ::FactoryGirl.create(@name, attrs)
+          if @trait
+            ::FactoryGirl.create(@factory, @trait, attrs)
+          else
+            ::FactoryGirl.create(@factory, attrs)
+          end
         else
           Factory(@name, attrs)
         end
