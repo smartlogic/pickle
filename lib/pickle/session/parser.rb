@@ -2,8 +2,18 @@ module Pickle
   module Session
     # add ability to parse model names as fields, using a session
     module Parser
+      module ParseFieldWithModel
+        def parse_field(field)
+          if session && field =~ /^(\w+): #{capture_model}$/
+            { $1 => session.model!($2) }
+          else
+            super(field)
+          end
+        end
+      end
+
       def self.included(parser_class)
-        parser_class.alias_method_chain :parse_field, :model
+        parser_class.prepend ParseFieldWithModel
       end
 
       attr_accessor :session
@@ -12,14 +22,6 @@ module Pickle
         "(?:\\w+: (?:#{match_model}|#{match_value}))"
       end
 
-      def parse_field_with_model(field)
-        if session && field =~ /^(\w+): #{capture_model}$/
-          {$1 => session.model!($2)}
-        else
-          parse_field_without_model(field)
-        end
-      end    
-      
       def parse_hash(hash)
         hash.inject({}) do |parsed, (key, val)|
           if session && val =~ /^#{capture_model}$/

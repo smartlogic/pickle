@@ -47,7 +47,6 @@ class PickleGenerator < Rails::Generators::Base
     template "email.rb", "features/support/email.rb"
   end
 
-
   private
 
   # Compatibility methods for Rails 2 templates
